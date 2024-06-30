@@ -1,0 +1,20 @@
+runtime: php
+env: flex
+
+runtime_config:
+  document_root: public
+
+# Ensure we skip ".env", which is used for local development.
+skip_files:
+  - .env
+
+env_variables:
+  # Put production environment variables here.
+  APP_ENV: production
+  APP_KEY: base64:mCuE9Dv38LPIOaiftoKIMN6bWQTE5IEi/vsa4LWfbfc=
+  DB_CONNECTION: mysql
+  DB_HOST: 127.0.0.1
+  DB_DATABASE: fashion_ecommerce
+  DB_USERNAME: root
+  DB_PASSWORD: 
+  # Add other environment variables as needed.

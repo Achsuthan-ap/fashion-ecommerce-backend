@@ -1,9 +1,12 @@
 <?php
 
+use App\Http\Controllers\CartController;
+use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\FlexFieldController;
 use App\Http\Controllers\OfferController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductCategoryController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::controller(FlexFieldController::class)->group(function () {
@@ -37,4 +40,34 @@ Route::controller(OfferController::class)->group(function () {
     Route::post('/offers', 'storeOrUpdate');                                                             
     Route::put('/offers/{id}', 'storeOrUpdate');                           
     Route::delete('/offers/{id}', 'delete');                           
+});
+
+// CusotmerController routes
+Route::controller(CustomerController::class)->group(function () {
+    Route::get('/customers', 'getAll');                                                            
+    Route::get('/customers/{id}', 'getOne');                                 
+    Route::post('/customers', 'storeOrUpdate');                                                             
+    Route::put('/customers/{id}', 'storeOrUpdate');                           
+    Route::delete('/customers/{id}', 'delete');                           
+});
+
+// UserController routes
+Route::controller(UserController::class)->group(function () {
+    Route::post('register', 'register');
+    Route::post('login', 'login');
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('user', 'getAuthenticatedUser');
+        Route::get('users', 'getAll');
+        Route::get('user/{id}', 'getOne');
+        Route::post('user', 'storeOrUpdate');
+        Route::put('user/{id}', 'storeOrUpdate');
+        Route::delete('user/{id}', 'delete');
+    });
+});
+
+// CartController routes
+Route::controller(CartController::class)->group(function () {
+    Route::get('/cart', 'getAll');                                                            
+    Route::get('/cart/{id}', 'getOne');                                 
+    Route::get('/cart/user/{userId}', 'getUserCart');                                                    
 });

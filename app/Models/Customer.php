@@ -21,4 +21,8 @@ class Customer extends Model
         "entity_id",
         "user_id"
     ];
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

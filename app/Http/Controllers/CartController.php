@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Services\DataValidator;
 use App\Services\QueryService;
 use App\Services\ResponseService;
 use Illuminate\Http\Request;
@@ -83,11 +84,89 @@ class CartController extends Controller
             // Check if any Cart items were found
             if ($cartItems->isEmpty()) {
                 // Return a not found response if no user exist
-                return ResponseService::response('NOT_FOUND', null, "User not found.");
+                return ResponseService::response('SUCCESS', null, "No Product Found.");
             }
 
             // Return a successful response with the Cart items data
             return ResponseService::response('SUCCESS', $cartItems);
+        } catch (\Throwable $exception) {
+            // Handle exceptions and return an error response
+            return ResponseService::response('INTERNAL_SERVER_ERROR', $exception->getMessage());
+        }
+    }
+
+    public function storeOrUpdateUserCart(Request $request, $id = null)
+    {
+        try {
+            // Check if we are creating a new record (not updating an existing one)
+            $isCreating = !isset($id);
+
+            // Define validation rules for the form inputs
+            $rules = [
+                'user_id' => 'required|exists:users,id',
+                'product_id' => 'required|exists:products,id,deleted_at,NULL',
+                'quantity' => 'required|integer',
+            ];
+
+            $validator = DataValidator::make($request->all(), $rules);
+
+            // If validation fails, return a validation error response.
+            if ($validator->fails()) {
+                return ResponseService::response('VALIDATION_ERROR', $validator->errors(), "Validation Failed");
+            }
+
+            DB::beginTransaction();
+            // Create or update the User Cart based on the request data
+            if ($isCreating) {
+                  // Create a new User Cart entry
+                  $userCartData = $request->all();
+                  $userCart = Cart::create($userCartData);
+                  $message = "Product added to cart successfully.";
+            } else {
+                // Check if the user already has this product in their cart
+                $userCart = Cart::where('user_id', $request->user_id)
+                                    ->where('product_id', $request->product_id)
+                                    ->first();
+
+                if (!$userCart) {
+                    return ResponseService::response('NOT_FOUND', null, "Cart not found.");
+                }
+
+                $userCart->update($request->all());
+                $message = "Cart updated successfully.";
+            }
+
+            DB::commit();
+
+            // Return a successful response with the userCart data and a success message
+            return ResponseService::response('SUCCESS', $userCart, $message);
+        } catch (\Throwable $exception) {
+            DB::rollBack();
+            // Handle exceptions and return an error response
+            return ResponseService::response('INTERNAL_SERVER_ERROR', $exception->getMessage());
+        }
+    }
+
+    public function deleteUserCartProduct($userID, $cartId)
+    {
+        try {
+
+            // Find the Cart by user_id, and cart_id
+            $userCartProduct = Cart::where('user_id', $userID)
+            ->where('id', $cartId)
+            ->first();
+
+            // Check if the Cart was found
+            if (!$userCartProduct) {
+            // Return a not found response if the Cart doesn't exist
+            return ResponseService::response('NOT_FOUND', null, "Cart item not found.");
+            }
+
+            // Delete the Product from the cart
+            $userCartProduct->delete();
+
+            // Return a successful response indicating successful deletion
+            return ResponseService::response('SUCCESS', "Product deleted from the cart successfully.");
         } catch (\Throwable $exception) {
             // Handle exceptions and return an error response
             return ResponseService::response('INTERNAL_SERVER_ERROR', $exception->getMessage());

@@ -17,8 +17,9 @@ return new class extends Migration
             $table->string('last_name');
             $table->string('email')->nullable();
             $table->string('phone');
-            $table->text('address');
+            $table->string('address');
             $table->unsignedBigInteger('entity_id')->unique();
+            $table->unsignedBigInteger('user_id')->unique();
             $table->timestamps();
         });
     }

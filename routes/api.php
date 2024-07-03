@@ -4,11 +4,13 @@ use App\Http\Controllers\CartController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\FlexFieldController;
 use App\Http\Controllers\OfferController;
+use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
+// FLexFieldController routes
 Route::controller(FlexFieldController::class)->group(function () {
     Route::get('flex-fields', 'getAll');                            
     Route::get('flex-fields/{id}', 'getOne');                       
@@ -46,6 +48,7 @@ Route::controller(OfferController::class)->group(function () {
 Route::controller(CustomerController::class)->group(function () {
     Route::get('/customers', 'getAll');                                                            
     Route::get('/customers/{id}', 'getOne');                                 
+    Route::get('/customers/user/{userId}', 'getOneByUserId');                                 
     Route::post('/customers', 'storeOrUpdate');                                                             
     Route::put('/customers/{id}', 'storeOrUpdate');                           
     Route::delete('/customers/{id}', 'delete');                           
@@ -67,7 +70,19 @@ Route::controller(UserController::class)->group(function () {
 
 // CartController routes
 Route::controller(CartController::class)->group(function () {
-    Route::get('/cart', 'getAll');                                                            
-    Route::get('/cart/{id}', 'getOne');                                 
-    Route::get('/cart/user/{userId}', 'getUserCart');                                                    
+    Route::get('/carts', 'getAll');                                                            
+    Route::get('/carts/{id}', 'getOne');                                 
+    Route::get('/carts/user/{userId}', 'getUserCart');
+    Route::post('/carts/user', 'storeOrUpdateUserCart');                                                        
+    Route::put('/carts/user/{userId}', 'storeOrUpdateUserCart');                                                        
+    Route::delete('/carts/user/{userId}/{itemId}', 'deleteUserCartProduct');                                                        
+});
+
+// OrderController routes
+Route::controller(OrderController::class)->group(function () {
+    Route::get('/orders', 'getAll');                                                            
+    Route::get('/orders/{id}', 'getOne');                                 
+    Route::post('/orders', 'storeOrUpdate');                                                        
+    Route::put('/orders/{id}', 'storeOrUpdate');                                                        
+    Route::delete('/orders/{id}', 'delete');                                                        
 });

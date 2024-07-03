@@ -4,13 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Models\User;
 use App\Services\DataValidator;
 use App\Services\EntityService;
 use App\Services\QueryService;
 use Illuminate\Http\Request;
 use App\Services\ResponseService;
 use DB;
-use User;
 
 class CustomerController extends Controller
 {
@@ -62,6 +62,35 @@ class CustomerController extends Controller
         try {
             // Find the Customer by its ID
             $customer = Customer::find($id);
+
+            // Check if the Customer was found
+            if (!$customer) {
+                // Return a not found response if the Customer doesn't exist
+                return ResponseService::response('NOT_FOUND', null, "Customer not found.");
+            }
+
+            // Return a successful response with the Customer data
+            return ResponseService::response('SUCCESS', $customer);
+        } catch (\Throwable $exception) {
+            // Handle exceptions and return an error response
+            return ResponseService::response('INTERNAL_SERVER_ERROR', $exception->getMessage());
+        }
+    }
+
+    public function getOneByUserId($userId)
+    {
+        try {
+            // Find the User by its ID
+            $user = User::find($userId);
+
+            // Check if the User was found
+            if (!$user) {
+                // Return a not found response if the User doesn't exist
+                return ResponseService::response('NOT_FOUND', null, "User not found.");
+            }
+
+            // Get the related Customer
+            $customer = $user->customer;
 
             // Check if the Customer was found
             if (!$customer) {

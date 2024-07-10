@@ -119,6 +119,7 @@ class CustomerController extends Controller
                 'phone' => 'required|string|max:255',
                 'email' => 'nullable|email',
                 'address' => 'required|string',
+                'user_id'=> 'nullable'
             ];
 
 

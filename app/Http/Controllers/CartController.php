@@ -35,7 +35,7 @@ class CartController extends Controller
             $sortDir = $request->sort_dir ?? 'asc';
 
             // Build the base query for the base table
-            $baseQuery = DB::table('cart');
+            $baseQuery = DB::table('cart')->whereNull('deleted_at');
             // You can add your left join queries and additional where conditions here if needed
 
             // Apply filters, search, and conditions to the base query
@@ -79,7 +79,7 @@ class CartController extends Controller
     {
         try {
             // Find all Cart items by the user ID
-            $cartItems = Cart::where('user_id', $userId)->with('product')->get();
+            $cartItems = Cart::where('user_id', $userId)->with('product')->whereNull('deleted_at')->get();
 
             // Check if any Cart items were found
             if ($cartItems->isEmpty()) {
@@ -125,8 +125,8 @@ class CartController extends Controller
             } else {
                 // Check if the user already has this product in their cart
                 $userCart = Cart::where('user_id', $request->user_id)
-                                    ->where('product_id', $request->product_id)
-                                    ->first();
+                                ->where('product_id', $request->product_id)
+                                ->first();
 
                 if (!$userCart) {
                     return ResponseService::response('NOT_FOUND', null, "Cart not found.");
@@ -173,5 +173,28 @@ class CartController extends Controller
         }
     }
 
+    public function deleteUserCart($cartId)
+    {
+        try {
+
+            // Find the Cart by cart_id
+            $userCart = Cart::where('id', $cartId);
+
+            // Check if the Cart was found
+            if (!$userCart) {
+            // Return a not found response if the Cart doesn't exist
+            return ResponseService::response('NOT_FOUND', null, "Cart not found.");
+            }
+
+            // Delete the cart
+            $userCart->delete();
+
+            // Return a successful response indicating successful deletion
+            return ResponseService::response('SUCCESS', "Cart deleted successfully.");
+        } catch (\Throwable $exception) {
+            // Handle exceptions and return an error response
+            return ResponseService::response('INTERNAL_SERVER_ERROR', $exception->getMessage());
+        }
+    }
 
 }

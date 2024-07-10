@@ -18,14 +18,14 @@ class OrderController extends Controller
         try {
             
             // Define the columns groups that want to select
-            $allColumns = ['id', 'customer_id', 'cart_id','total_amount', 'status','payment_method'];
+            $allColumns = ['id', 'customer_id', 'product_id','total_amount', 'status','payment_method'];
 
             // Define allowed filters, searchable columns for where condition
-            $allowedFilters = ['customer_id', 'cart_id','total_amount', 'status','payment_method'];
-            $searchColumns = ['customer_id', 'cart_id','total_amount', 'status','payment_method'];
+            $allowedFilters = ['customer_id', 'product_id','total_amount', 'status','payment_method'];
+            $searchColumns = ['customer_id', 'product_id','total_amount', 'status','payment_method'];
 
             // Define allowed sorting columns for 'orderBy' method
-            $allowedSortingColumns = ['customer_id', 'cart_id','total_amount', 'status','payment_method'];
+            $allowedSortingColumns = ['customer_id', 'product_id','total_amount', 'status','payment_method'];
 
             // Get filter JSON, search string, pagination parameters, etc. from the request
             $filterJson = $request->filters ?? [];
@@ -36,7 +36,7 @@ class OrderController extends Controller
             $sortDir = $request->sort_dir ?? 'asc';
 
             // Build the base query for the base table
-            $baseQuery = DB::table('orders');
+            $baseQuery = DB::table('orders')->whereNull('deleted_at');
             // You can add your left join queries and additional where conditions here if needed
 
             // Apply filters, search, and conditions to the base query
@@ -85,8 +85,9 @@ class OrderController extends Controller
             // Define validation rules for the form inputs
             $rules = [
                 'customer_id' => 'required|exists:customers,id',
-                'cart_id' => 'required|exists:cart,id',
-                'total_amount' => 'required|integer',
+                'product_id' => 'required|exists:products,id',
+                'quantity' => 'required|integer',
+                'unit_price' => 'required',
                 'status' => 'required|string|max:255',
                 'payment_method'=> 'required|string|max:255'
             ];

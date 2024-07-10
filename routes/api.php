@@ -76,6 +76,7 @@ Route::controller(CartController::class)->group(function () {
     Route::post('/carts/user', 'storeOrUpdateUserCart');                                                        
     Route::put('/carts/user/{userId}', 'storeOrUpdateUserCart');                                                        
     Route::delete('/carts/user/{userId}/{itemId}', 'deleteUserCartProduct');                                                        
+    Route::delete('/carts/user/{userId}', 'deleteUserCart');                                                        
 });
 
 // OrderController routes

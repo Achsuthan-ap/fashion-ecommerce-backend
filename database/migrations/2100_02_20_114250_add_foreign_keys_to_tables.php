@@ -46,10 +46,10 @@ return new class extends Migration
             $table->foreign('user_id', 'fk_customers_user_id')->references('id')->on('users')->onDelete('cascade');
         });
         Schema::table('orders', function (Blueprint $table) {
-            // $table->dropForeign('fk_orders_customer_id');
-            // $table->dropForeign('fk_orders_cart_id');
+            $table->dropForeign('fk_orders_customer_id');
+            $table->dropForeign('fk_orders_product_id');
             $table->foreign('customer_id', 'fk_orders_customer_id')->references('id')->on('customers')->onDelete('cascade');
-            $table->foreign('cart_id', 'fk_orders_cart_id')->references('id')->on('cart')->onDelete('cascade');
+            $table->foreign('product_id', 'fk_orders_product_id')->references('id')->on('products')->onDelete('cascade');
         });
     }
 };

@@ -14,11 +14,13 @@ return new class extends Migration
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('customer_id');
-            $table->unsignedBigInteger('cart_id');
-            $table->decimal('total_amount', 10, 2);
+            $table->unsignedBigInteger('product_id');
+            $table->integer('quantity');
+            $table->decimal('unit_price', 10, 2);
             $table->enum('status', ['pending', 'processing', 'completed', 'cancelled'])->default('pending');
             $table->enum('payment_method', ['card', 'cash_on_delivery'])->default('card');
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

@@ -24,6 +24,9 @@ Route::controller(FlexFieldController::class)->group(function () {
 Route::controller(ProductController::class)->group(function () {
     Route::get('/products', 'getAll');                                            
     Route::get('/products/{id}', 'getOne');                                                           
+    Route::post('/products', 'storeOrUpdate');                                                           
+    Route::put('/products/{id}', 'storeOrUpdate');                                                           
+    Route::delete('/products/{id}', 'storeOrUpdate');                                                           
 });
 
 // ProductCategoryController routes

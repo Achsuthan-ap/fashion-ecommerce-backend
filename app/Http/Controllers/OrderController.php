@@ -18,14 +18,14 @@ class OrderController extends Controller
         try {
             
             // Define the columns groups that want to select
-            $allColumns = ['id', 'customer_id', 'product_id','total_amount', 'status','payment_method'];
+            $allColumns = ['orders.id', 'customer_id', 'customers.first_name as customer_name','customers.phone as customer_phone','customers.address as customer_address', 'product_id','products.name as product_name','quantity', 'status','payment_method'];
 
             // Define allowed filters, searchable columns for where condition
-            $allowedFilters = ['customer_id', 'product_id','total_amount', 'status','payment_method'];
-            $searchColumns = ['customer_id', 'product_id','total_amount', 'status','payment_method'];
+            $allowedFilters = ['customer_id', 'product_id','quantity', 'status','payment_method'];
+            $searchColumns = ['customer_id', 'product_id','quantity', 'status','payment_method'];
 
             // Define allowed sorting columns for 'orderBy' method
-            $allowedSortingColumns = ['customer_id', 'product_id','total_amount', 'status','payment_method'];
+            $allowedSortingColumns = ['customer_id', 'product_id','quantity', 'status','payment_method'];
 
             // Get filter JSON, search string, pagination parameters, etc. from the request
             $filterJson = $request->filters ?? [];
@@ -36,7 +36,9 @@ class OrderController extends Controller
             $sortDir = $request->sort_dir ?? 'asc';
 
             // Build the base query for the base table
-            $baseQuery = DB::table('orders')->whereNull('deleted_at');
+            $baseQuery = DB::table('orders')->whereNull('orders.deleted_at')
+            ->leftJoin('customers', 'orders.customer_id', '=', 'customers.id')
+            ->leftJoin('products', 'orders.product_id', '=', 'products.id');
             // You can add your left join queries and additional where conditions here if needed
 
             // Apply filters, search, and conditions to the base query
@@ -68,6 +70,8 @@ class OrderController extends Controller
                 return ResponseService::response('NOT_FOUND', null, "order not found.");
             }
 
+            $order->customer;
+            $order->product;
             // Return a successful response with the order data
             return ResponseService::response('SUCCESS', $order);
         } catch (\Throwable $exception) {
@@ -87,7 +91,6 @@ class OrderController extends Controller
                 'customer_id' => 'required|exists:customers,id',
                 'product_id' => 'required|exists:products,id',
                 'quantity' => 'required|integer',
-                'unit_price' => 'required',
                 'status' => 'required|string|max:255',
                 'payment_method'=> 'required|string|max:255'
             ];

@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use App\Services\DataValidator;
+use App\Services\EntityService;
 use App\Services\QueryService;
 use App\Services\ResponseService;
 use Illuminate\Http\Request;
@@ -15,7 +17,7 @@ class ProductController extends Controller
     {
         try {
             // Define the columns groups that want to select
-            $allColumns = ['products.id','name','products.description','price','stock_count','images','categories.title AS category','offers.offer_value AS offer','specifications'];
+            $allColumns = ['products.id','name','products.description','price','stock_count','images','categories.title AS product_category','offers.offer_value AS offer','specifications'];
             $minColumns = ['products.id','name', 'images', 'price', 'category_id'];
 
             // Define allowed filters, searchable columns for where condition
@@ -77,6 +79,8 @@ class ProductController extends Controller
 
             $product->images = json_decode($product->images);
             $product->specifications = json_decode($product->specifications);
+            $product-> category;
+            $product->entity;
            
             // Return a successful response with the Product data
             return ResponseService::response('SUCCESS', $product);
@@ -86,5 +90,93 @@ class ProductController extends Controller
         }
     }
 
+    public function storeOrUpdate(Request $request, $id = null)
+    {
+        try {
+            // Check if we are creating a new record (not updating an existing one)
+            $isCreating = !isset($id);
+
+            // Define validation rules for the form inputs
+            $rules = [
+                'name' => 'required|string|max:255',
+                'description' => 'nullable|string|max:255',
+                'price' => 'required|string|max:255',
+                'stock_count' => 'nullable|integer|max:255',
+                // 'images' => 'nullable|integer|max:255',
+                'category_id' => 'required|exists:product_categories,id',
+                // 'specifications' => ''
+            ];
+
+            $validator = DataValidator::make($request->all(), $rules);
+
+            // If validation fails, return a validation error response.
+            if ($validator->fails()) {
+                return ResponseService::response('VALIDATION_ERROR', $validator->errors(), "Validation Failed");
+            }
+
+            // Determine whether you are creating a new Product or updating an existing one
+
+            DB::beginTransaction();
+            // Create or update the Product based on the request data
+            if ($isCreating) {
+                // Create a new Product using the request data
+                $productData = $request->all();
+                $entity = EntityService::store($request->all());
+                // Add $entity->id to the request data
+                $productData['entity_id'] = $entity->id;
+
+                $product = Product::create($productData);
+                $message = "Product created successfully.";
+            } else {
+                // Update an existing Product using the request data
+                $product = Product::find($id);
+                if (!$product) {
+                    return ResponseService::response('NOT_FOUND', null, "Product not found.");
+                }
+
+                EntityService::update($product->entity_id, $request->all());
+                $product->update($request->all());
+                $message = "Product updated successfully.";
+            }
+
+            DB::commit();
+
+            // Return a successful response with the Product data and a success message
+            return ResponseService::response('SUCCESS', null, $message);
+        } catch (\Throwable $exception) {
+            DB::rollBack();
+            // Handle exceptions and return an error response
+            return ResponseService::response('INTERNAL_SERVER_ERROR', $exception->getMessage());
+        }
+    }
+
+    public function delete($id)
+    {
+        try {
+            // Find the Product by its ID
+            $product = Product::find($id);
+
+            // Check if the Product was found
+            if (!$product) {
+                // Return a not found response if the Product doesn't exist
+                return ResponseService::response('NOT_FOUND', null, "Product not found.");
+            }
+
+            $usedCount = Product::where('product_id', $product->id)->count();
+
+            if ($usedCount > 0) {
+                return ResponseService::response('CONFLICT', null, "Unable to delete Product. It's referenced in Product. Update records or resolve conflicts.");
+            }
+
+            // Delete the Product
+            $product->delete();
+
+            // Return a successful response indicating successful deletion
+            return ResponseService::response('SUCCESS', null, "Product deleted successfully.");
+        } catch (\Throwable $exception) {
+            // Handle exceptions and return an error response
+            return ResponseService::response('INTERNAL_SERVER_ERROR', $exception->getMessage());
+        }
+    }
     
 }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\EntityService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -20,7 +21,15 @@ class Product extends Model
         "stock",
         "description",
         "images",
-        "category",
+        "category_id",
         "specifications",
     ];
+    public function category()
+    {
+        return $this->belongsTo(ProductCategory::class, 'category_id');
+    }
+    public function entity()
+    {
+        return EntityService::belongsTo($this);
+    }
 }

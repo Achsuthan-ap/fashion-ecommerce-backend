@@ -90,65 +90,72 @@ class ProductController extends Controller
         }
     }
 
-    public function storeOrUpdate(Request $request, $id = null)
-    {
-        try {
-            // Check if we are creating a new record (not updating an existing one)
-            $isCreating = !isset($id);
-
-            // Define validation rules for the form inputs
-            $rules = [
-                'name' => 'required|string|max:255',
-                'description' => 'nullable|string|max:255',
-                'price' => 'required|string|max:255',
-                'stock_count' => 'nullable|integer|max:255',
-                // 'images' => 'nullable|integer|max:255',
-                'category_id' => 'required|exists:product_categories,id',
-                // 'specifications' => ''
-            ];
-
-            $validator = DataValidator::make($request->all(), $rules);
-
-            // If validation fails, return a validation error response.
-            if ($validator->fails()) {
-                return ResponseService::response('VALIDATION_ERROR', $validator->errors(), "Validation Failed");
-            }
-
-            // Determine whether you are creating a new Product or updating an existing one
-
-            DB::beginTransaction();
-            // Create or update the Product based on the request data
-            if ($isCreating) {
-                // Create a new Product using the request data
-                $productData = $request->all();
-                $entity = EntityService::store($request->all());
-                // Add $entity->id to the request data
-                $productData['entity_id'] = $entity->id;
-
-                $product = Product::create($productData);
-                $message = "Product created successfully.";
-            } else {
-                // Update an existing Product using the request data
-                $product = Product::find($id);
-                if (!$product) {
-                    return ResponseService::response('NOT_FOUND', null, "Product not found.");
-                }
-
-                EntityService::update($product->entity_id, $request->all());
-                $product->update($request->all());
-                $message = "Product updated successfully.";
-            }
-
-            DB::commit();
-
-            // Return a successful response with the Product data and a success message
-            return ResponseService::response('SUCCESS', null, $message);
-        } catch (\Throwable $exception) {
-            DB::rollBack();
-            // Handle exceptions and return an error response
-            return ResponseService::response('INTERNAL_SERVER_ERROR', $exception->getMessage());
-        }
-    }
+   public function storeOrUpdate(Request $request, $id = null)
+   {
+       try {
+           // Check if we are creating a new record (not updating an existing one)
+           $isCreating = !isset($id);
+   
+           // Define validation rules for the form inputs
+           $rules = [
+               'name' => 'required|string|max:255',
+               'description' => 'nullable|string|max:255',
+               'price' => 'required|numeric',  
+               'stock_count' => 'nullable|numeric', 
+               'images' => 'nullable|array',  
+               'category_id' => 'required|exists:product_categories,id',
+               'specifications' => 'nullable|array' 
+           ];
+   
+           $validator = DataValidator::make($request->all(), $rules);
+   
+           // If validation fails, return a validation error response.
+           if ($validator->fails()) {
+               return ResponseService::response('VALIDATION_ERROR', $validator->errors(), "Validation Failed");
+           }
+   
+           // Transform arrays into JSON strings
+           $productData = $request->all();
+           if (isset($productData['images'])) {
+               $productData['images'] = json_encode($productData['images']);
+           }
+           if (isset($productData['specifications'])) {
+               $productData['specifications'] = json_encode($productData['specifications']);
+           }
+   
+           DB::beginTransaction();
+   
+           if ($isCreating) {
+               // Create a new Product using the request data
+               $entity = EntityService::store($productData);
+               // Add $entity->id to the request data
+               $productData['entity_id'] = $entity->id;
+   
+               $product = Product::create($productData);
+               $message = "Product created successfully.";
+           } else {
+               // Update an existing Product using the request data
+               $product = Product::find($id);
+               if (!$product) {
+                   return ResponseService::response('NOT_FOUND', null, "Product not found.");
+               }
+   
+               EntityService::update($product->entity_id, $productData);
+               $product->update($productData);
+               $message = "Product updated successfully.";
+           }
+   
+           DB::commit();
+   
+           // Return a successful response with the Product data and a success message
+           return ResponseService::response('SUCCESS', null, $message);
+       } catch (\Throwable $exception) {
+           DB::rollBack();
+           // Handle exceptions and return an error response
+           return ResponseService::response('INTERNAL_SERVER_ERROR', $exception->getMessage());
+       }
+   }
+   
 
     public function delete($id)
     {

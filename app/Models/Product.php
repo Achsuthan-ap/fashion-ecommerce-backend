@@ -15,10 +15,11 @@ class Product extends Model
     public $timestamps = false;
 
     protected $fillable = [
+        "entity_id",
         "name",
         "description",
         "price",
-        "stock",
+        "stock_count",
         "description",
         "images",
         "category_id",

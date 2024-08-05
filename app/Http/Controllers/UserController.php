@@ -18,7 +18,7 @@ class UserController extends Controller
         $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,NULL,id,deleted_at,NULL',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => 'required|string|min:8',
         ];
 
         $validator = DataValidator::make($request->all(), $rules);

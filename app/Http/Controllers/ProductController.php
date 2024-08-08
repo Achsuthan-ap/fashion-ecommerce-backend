@@ -104,7 +104,7 @@ class ProductController extends Controller
                'stock_count' => 'nullable|numeric', 
                'images' => 'nullable|array',  
                'category_id' => 'required|exists:product_categories,id',
-               'specifications' => 'nullable|array' 
+               'specifications' => 'nullable' 
            ];
    
            $validator = DataValidator::make($request->all(), $rules);

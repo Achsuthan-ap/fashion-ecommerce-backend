@@ -7,6 +7,7 @@ use App\Http\Controllers\OfferController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductCategoryController;
+use App\Http\Controllers\StaticPageController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -89,4 +90,13 @@ Route::controller(OrderController::class)->group(function () {
     Route::post('/orders', 'storeOrUpdate');                                                        
     Route::put('/orders/{id}', 'storeOrUpdate');                                                        
     Route::delete('/orders/{id}', 'delete');                                                        
+});
+
+// StaticPageController routes
+Route::controller(StaticPageController::class)->group(function () {
+    Route::get('/static-pages', 'getAll');                                                            
+    Route::get('/static-pages/{id}', 'getOne');                                 
+    Route::post('/static-pages', 'storeOrUpdate');                                                        
+    Route::put('/static-pages/{id}', 'storeOrUpdate');                                                        
+    Route::delete('/static-pages/{id}', 'delete');                                                        
 });

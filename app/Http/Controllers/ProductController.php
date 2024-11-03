@@ -17,12 +17,12 @@ class ProductController extends Controller
     {
         try {
             // Define the columns groups that want to select
-            $allColumns = ['products.id','name','products.description','price','stock_count','images','categories.title AS product_category','offers.offer_value AS offer','specifications'];
+            $allColumns = ['products.id','name','products.description','price','stock_count','images','categories.title AS product_category','offers.offer_value','offers.offer_type','specifications'];
             $minColumns = ['products.id','name', 'images', 'price', 'category_id'];
 
             // Define allowed filters, searchable columns for where condition
-            $allowedFilters = ['name', 'price', 'categories.title','offers.offer_value '];
-            $searchColumns = ['name','description','price','stock_count','categories.title','offers.offer_value','specifications'];
+            $allowedFilters = ['name', 'price', 'category_id','offers.offer_value '];
+            $searchColumns = ['name','products.description','price','stock_count','category_id','offers.offer_value','specifications'];
 
             // Define allowed sorting columns for 'orderBy' method
             $allowedSortingColumns = ['products.id','name','description','price','stock','categories.title','offers.offer_value','specifications'];
@@ -77,9 +77,10 @@ class ProductController extends Controller
                 return ResponseService::response('NOT_FOUND', null, "Product not found.");
             }
 
-            $product->images = json_decode($product->images);
+            // $product->images = json_decode($product->images);
             $product->specifications = json_decode($product->specifications);
             $product-> category;
+            $product-> offer;
             $product->entity;
            
             // Return a successful response with the Product data
@@ -169,11 +170,11 @@ class ProductController extends Controller
                 return ResponseService::response('NOT_FOUND', null, "Product not found.");
             }
 
-            $usedCount = Product::where('product_id', $product->id)->count();
+            // $usedCount = Product::where('id', $product->id)->count();
 
-            if ($usedCount > 0) {
-                return ResponseService::response('CONFLICT', null, "Unable to delete Product. It's referenced in Product. Update records or resolve conflicts.");
-            }
+            // if ($usedCount > 0) {
+            //     return ResponseService::response('CONFLICT', null, "Unable to delete Product. It's referenced in Product. Update records or resolve conflicts.");
+            // }
 
             // Delete the Product
             $product->delete();

@@ -7,8 +7,13 @@ use App\Http\Controllers\OfferController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductCategoryController;
+use App\Http\Controllers\ProductOfferController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\StaticPageController;
+use App\Http\Controllers\StockOrderController;
+use App\Http\Controllers\StockOrderItemController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\VendorController;
 use Illuminate\Support\Facades\Route;
 
 // FLexFieldController routes
@@ -27,7 +32,7 @@ Route::controller(ProductController::class)->group(function () {
     Route::get('/products/{id}', 'getOne');                                                           
     Route::post('/products', 'storeOrUpdate');                                                           
     Route::put('/products/{id}', 'storeOrUpdate');                                                           
-    Route::delete('/products/{id}', 'storeOrUpdate');                                                           
+    Route::delete('/products/{id}', 'delete');                                                           
 });
 
 // ProductCategoryController routes
@@ -99,4 +104,44 @@ Route::controller(StaticPageController::class)->group(function () {
     Route::post('/static-pages', 'storeOrUpdate');                                                        
     Route::put('/static-pages/{id}', 'storeOrUpdate');                                                        
     Route::delete('/static-pages/{id}', 'delete');                                                        
+});
+
+// VenodrController routes
+Route::controller(VendorController::class)->group(function () {
+    Route::get('/vendors', 'getAll');                                                            
+    Route::get('/vendors/{id}', 'getOne');                                                                
+    Route::post('/vendors', 'storeOrUpdate');                                                             
+    Route::put('/vendors/{id}', 'storeOrUpdate');                           
+    Route::delete('/vendors/{id}', 'delete');                           
+});
+
+// StockOrderController routes
+Route::controller(StockOrderController::class)->group(function () {
+    Route::get('/stock-orders', 'getAll');                                                            
+    Route::get('/stock-orders/{id}', 'getOne');                                                                
+    Route::post('/stock-orders', 'storeOrUpdate');                                                             
+    Route::put('/stock-orders/{id}', 'storeOrUpdate');                           
+    Route::delete('/stock-orders/{id}', 'delete');                           
+});
+
+// StockOrderItemController routes
+Route::controller(StockOrderItemController::class)->group(function () {
+    Route::get('/stock-order-items', 'getAll');                                                            
+    Route::get('/stock-order-items/{id}', 'getOne');                                                                
+    Route::post('/stock-order-items', 'storeOrUpdate');                                                             
+    Route::put('/stock-order-items/{id}', 'storeOrUpdate');                           
+    Route::delete('/stock-order-items/{id}', 'delete');                           
+});
+
+// ProductOfferController routes
+Route::controller(ProductOfferController::class)->group(function () {
+    Route::get('/product-offers', 'getAll');                                                            
+    Route::get('/product-offers/{id}', 'getOne');                                 
+    Route::post('/product-offers', 'storeOrUpdate');                                                             
+    Route::put('/product-offers/{id}', 'storeOrUpdate');                           
+    Route::delete('/product-offers/{id}', 'delete');                           
+});
+
+Route::controller(ReportController::class)->group(function () {
+    Route::post('/reports', 'generateReport');                                                                                      
 });

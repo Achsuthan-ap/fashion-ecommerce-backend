@@ -3,29 +3,28 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\Order;
+use App\Models\StockOrder;
 use App\Services\DataValidator;
-use App\Services\EntityService;
 use App\Services\QueryService;
 use App\Services\ResponseService;
 use Illuminate\Http\Request;
 use DB;
 
-class OrderController extends Controller
+class StockOrderController extends Controller
 {
     public function getAll(Request $request)
     {
         try {
             
             // Define the columns groups that want to select
-            $allColumns = ['orders.id', 'customer_id', 'customers.first_name as customer_name','customers.phone as customer_phone','customers.address as customer_address', 'product_id','products.name as product_name','quantity', 'orders.status','orders.payment_method'];
+            $allColumns = ['orders.id', 'vendor_id','vendors.name as vendor_name', 'order_number','delivery_date','delivery_address', 'orders.status','orders.total_amount'];
 
             // Define allowed filters, searchable columns for where condition
-            $allowedFilters = ['customer_id', 'product_id','quantity', 'status','payment_method'];
-            $searchColumns = ['customer_id', 'product_id','quantity', 'status','payment_method'];
+            $allowedFilters = ['vendor_id', 'order_number','delivery_date', 'status','total_amount','delivery_address'];
+            $searchColumns = ['vendor_id', 'order_number','delivery_date', 'status','total_amount','delivery_address'];
 
             // Define allowed sorting columns for 'orderBy' method
-            $allowedSortingColumns = ['customer_id', 'product_id','quantity', 'status','payment_method'];
+            $allowedSortingColumns = ['vendor_id', 'order_number','delivery_date', 'status','total_amount','delivery_address'];
 
             // Get filter JSON, search string, pagination parameters, etc. from the request
             $filterJson = $request->filters ?? [];
@@ -36,9 +35,8 @@ class OrderController extends Controller
             $sortDir = $request->sort_dir ?? 'asc';
 
             // Build the base query for the base table
-            $baseQuery = DB::table('orders')->whereNull('orders.deleted_at')
-            ->leftJoin('customers', 'orders.customer_id', '=', 'customers.id')
-            ->leftJoin('products', 'orders.product_id', '=', 'products.id');
+            $baseQuery = DB::table('stock_orders as orders')
+            ->leftJoin('vendors', 'orders.vendor_id', '=', 'vendors.id');
             // You can add your left join queries and additional where conditions here if needed
 
             // Apply filters, search, and conditions to the base query
@@ -62,7 +60,7 @@ class OrderController extends Controller
     {
         try {
             // Find the Order by its ID
-            $order = Order::find($id);
+            $order = StockOrder::find($id);
 
             // Check if the order was found
             if (!$order) {
@@ -70,8 +68,7 @@ class OrderController extends Controller
                 return ResponseService::response('NOT_FOUND', null, "order not found.");
             }
 
-            $order->customer;
-            $order->product;
+            $order->vendor;
             // Return a successful response with the order data
             return ResponseService::response('SUCCESS', $order);
         } catch (\Throwable $exception) {
@@ -88,11 +85,12 @@ class OrderController extends Controller
 
             // Define validation rules for the form inputs
             $rules = [
-                'customer_id' => 'required|exists:customers,id',
-                'product_id' => 'required|exists:products,id',
-                'quantity' => 'required|integer',
+                'vendor_id' => 'required|exists:vendors,id',
+                'order_number' => 'required|string',
+                'delivery_date' => 'required|date',
+                'delivery_address' => 'required|string',
                 'status' => 'required|string|max:255',
-                'payment_method'=> 'required|string|max:255'
+                'total_amount'=> 'required|string|max:255'
             ];
 
             $validator = DataValidator::make($request->all(), $rules);
@@ -110,11 +108,11 @@ class OrderController extends Controller
                 // Create a new Order using the request data
                 $orderData = $request->all();
 
-                $order = Order::create($orderData);
+                $order = StockOrder::create($orderData);
                 $message = "Order created successfully.";
             } else {
                 // Update an existing Order using the request data
-                $order = Order::find($id);
+                $order = StockOrder::find($id);
                 if (!$order) {
                     return ResponseService::response('NOT_FOUND', null, "Order not found.");
                 }
@@ -139,7 +137,7 @@ class OrderController extends Controller
         try {
 
             // Find the Order by its ID
-            $order = Order::find($id);
+            $order = StockOrder::find($id);
 
             // Check if the Order was found
             if (!$order) {

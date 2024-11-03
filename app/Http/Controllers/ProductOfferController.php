@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\Order;
+use App\Models\ProductOffer;
 use App\Services\DataValidator;
 use App\Services\EntityService;
 use App\Services\QueryService;
@@ -11,21 +11,20 @@ use App\Services\ResponseService;
 use Illuminate\Http\Request;
 use DB;
 
-class OrderController extends Controller
+class ProductOfferController extends Controller
 {
     public function getAll(Request $request)
     {
         try {
-            
             // Define the columns groups that want to select
-            $allColumns = ['orders.id', 'customer_id', 'customers.first_name as customer_name','customers.phone as customer_phone','customers.address as customer_address', 'product_id','products.name as product_name','quantity', 'orders.status','orders.payment_method'];
+            $allColumns = ['product_offers.id', 'product_offers.product_category_id', 'categories.title AS product_category','product_offers.offer_id', 'offers.title AS offer', 'offers.offer_type', 'offers.offer_value'];
 
             // Define allowed filters, searchable columns for where condition
-            $allowedFilters = ['customer_id', 'product_id','quantity', 'status','payment_method'];
-            $searchColumns = ['customer_id', 'product_id','quantity', 'status','payment_method'];
+            $allowedFilters = ['product_category_id', 'offer_id'];
+            $searchColumns = ['product_category_id', 'offer_id'];
 
             // Define allowed sorting columns for 'orderBy' method
-            $allowedSortingColumns = ['customer_id', 'product_id','quantity', 'status','payment_method'];
+            $allowedSortingColumns = ['product_offers.id', 'product_category_id', 'offer_id'];
 
             // Get filter JSON, search string, pagination parameters, etc. from the request
             $filterJson = $request->filters ?? [];
@@ -36,9 +35,9 @@ class OrderController extends Controller
             $sortDir = $request->sort_dir ?? 'asc';
 
             // Build the base query for the base table
-            $baseQuery = DB::table('orders')->whereNull('orders.deleted_at')
-            ->leftJoin('customers', 'orders.customer_id', '=', 'customers.id')
-            ->leftJoin('products', 'orders.product_id', '=', 'products.id');
+            $baseQuery = DB::table('product_offers')
+            ->leftJoin('product_categories as categories', 'product_offers.product_category_id', '=', 'categories.id')
+            ->leftJoin('offers', 'product_offers.offer_id', '=', 'offers.id');
             // You can add your left join queries and additional where conditions here if needed
 
             // Apply filters, search, and conditions to the base query
@@ -61,19 +60,20 @@ class OrderController extends Controller
     public function getOne($id)
     {
         try {
-            // Find the Order by its ID
-            $order = Order::find($id);
 
-            // Check if the order was found
-            if (!$order) {
-                // Return a not found response if the order doesn't exist
-                return ResponseService::response('NOT_FOUND', null, "order not found.");
+            // Find the Product Offer by its ID
+            $productOffer = ProductOffer::find($id);
+
+            // Check if the Product Offer was found
+            if (!$productOffer) {
+                // Return a not found response if the Product Offer doesn't exist
+                return ResponseService::response('NOT_FOUND', null, "Product Offer not found.");
             }
 
-            $order->customer;
-            $order->product;
-            // Return a successful response with the order data
-            return ResponseService::response('SUCCESS', $order);
+            $productOffer->entity; //for getting flexfield values
+
+            // Return a successful response with the Product Offer data
+            return ResponseService::response('SUCCESS', $productOffer);
         } catch (\Throwable $exception) {
             // Handle exceptions and return an error response
             return ResponseService::response('INTERNAL_SERVER_ERROR', $exception->getMessage());
@@ -88,12 +88,10 @@ class OrderController extends Controller
 
             // Define validation rules for the form inputs
             $rules = [
-                'customer_id' => 'required|exists:customers,id',
-                'product_id' => 'required|exists:products,id',
-                'quantity' => 'required|integer',
-                'status' => 'required|string|max:255',
-                'payment_method'=> 'required|string|max:255'
+                'product_category_id' => 'required|unique:product_offers,product_category_id,NULL,id',
+                'offer_id' => 'required',
             ];
+
 
             $validator = DataValidator::make($request->all(), $rules);
 
@@ -102,31 +100,35 @@ class OrderController extends Controller
                 return ResponseService::response('VALIDATION_ERROR', $validator->errors(), "Validation Failed");
             }
 
-            // Determine whether you are creating a new Order or updating an existing one
+            // Determine whether you are creating a new Product Offer or updating an existing one
 
             DB::beginTransaction();
-            // Create or update the Order based on the request data
+            // Create or update the Product Offer based on the request data
             if ($isCreating) {
-                // Create a new Order using the request data
-                $orderData = $request->all();
+                // Create a new Product Offer using the request data
+                $productOfferData = $request->all();
+                $entity = EntityService::store($request->all());
+                // Add $entity->id to the request data
+                $productOfferData['entity_id'] = $entity->id;
 
-                $order = Order::create($orderData);
-                $message = "Order created successfully.";
+                $productOffer = productOffer::create($productOfferData);
+                $message = "Product Offer created successfully.";
             } else {
-                // Update an existing Order using the request data
-                $order = Order::find($id);
-                if (!$order) {
-                    return ResponseService::response('NOT_FOUND', null, "Order not found.");
+                // Update an existing Product Offer using the request data
+                $productOffer = productOffer::find($id);
+                if (!$productOffer) {
+                    return ResponseService::response('NOT_FOUND', null, "Product Offer not found.");
                 }
 
-                $order->update($request->all());
-                $message = "Order updated successfully.";
+                EntityService::update($productOffer->entity_id, $request->all());
+                $productOffer->update($request->all());
+                $message = "Product Offer updated successfully.";
             }
 
             DB::commit();
 
-            // Return a successful response with the Order data and a success message
-            return ResponseService::response('SUCCESS', $order, $message);
+            // Return a successful response with the Product Offer data and a success message
+            return ResponseService::response('SUCCESS', null, $message);
         } catch (\Throwable $exception) {
             DB::rollBack();
             // Handle exceptions and return an error response
@@ -137,24 +139,23 @@ class OrderController extends Controller
     public function delete($id)
     {
         try {
+            // Find the Product Offer by its ID
+            $productOffer = productOffer::find($id);
 
-            // Find the Order by its ID
-            $order = Order::find($id);
-
-            // Check if the Order was found
-            if (!$order) {
-                // Return a not found response if the Order doesn't exist
-                return ResponseService::response('NOT_FOUND', null, "Order not found.");
+            // Check if the Product Offer was found
+            if (!$productOffer) {
+                // Return a not found response if the Product Offer doesn't exist
+                return ResponseService::response('NOT_FOUND', null, "Product Offer not found.");
             }
-
-            // Delete the Order
-            $order->delete();
+            // Delete the Product Offer
+            $productOffer->delete();
 
             // Return a successful response indicating successful deletion
-            return ResponseService::response('SUCCESS', "Order deleted successfully.");
+            return ResponseService::response('SUCCESS', null, "Product Offer deleted successfully.");
         } catch (\Throwable $exception) {
             // Handle exceptions and return an error response
             return ResponseService::response('INTERNAL_SERVER_ERROR', $exception->getMessage());
         }
     }
+    
 }

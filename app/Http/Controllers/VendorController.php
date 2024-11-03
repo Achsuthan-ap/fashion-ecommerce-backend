@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\Order;
+use App\Models\Vendor;
 use App\Services\DataValidator;
 use App\Services\EntityService;
 use App\Services\QueryService;
@@ -11,21 +11,21 @@ use App\Services\ResponseService;
 use Illuminate\Http\Request;
 use DB;
 
-class OrderController extends Controller
+class VendorController extends Controller
 {
     public function getAll(Request $request)
     {
         try {
             
             // Define the columns groups that want to select
-            $allColumns = ['orders.id', 'customer_id', 'customers.first_name as customer_name','customers.phone as customer_phone','customers.address as customer_address', 'product_id','products.name as product_name','quantity', 'orders.status','orders.payment_method'];
+            $allColumns = ['id', 'name', 'contact_person','email', 'phone_number', 'address','country','status'];
 
             // Define allowed filters, searchable columns for where condition
-            $allowedFilters = ['customer_id', 'product_id','quantity', 'status','payment_method'];
-            $searchColumns = ['customer_id', 'product_id','quantity', 'status','payment_method'];
+            $allowedFilters = ['id', 'name', 'contact_person','email', 'phone_number', 'address','country','status'];
+            $searchColumns = ['id', 'name', 'contact_person','email', 'phone_number', 'address','country','status'];
 
             // Define allowed sorting columns for 'orderBy' method
-            $allowedSortingColumns = ['customer_id', 'product_id','quantity', 'status','payment_method'];
+            $allowedSortingColumns = ['id', 'name', 'contact_person','email', 'phone_number', 'address','country','status'];
 
             // Get filter JSON, search string, pagination parameters, etc. from the request
             $filterJson = $request->filters ?? [];
@@ -36,9 +36,7 @@ class OrderController extends Controller
             $sortDir = $request->sort_dir ?? 'asc';
 
             // Build the base query for the base table
-            $baseQuery = DB::table('orders')->whereNull('orders.deleted_at')
-            ->leftJoin('customers', 'orders.customer_id', '=', 'customers.id')
-            ->leftJoin('products', 'orders.product_id', '=', 'products.id');
+            $baseQuery = DB::table('vendors');
             // You can add your left join queries and additional where conditions here if needed
 
             // Apply filters, search, and conditions to the base query
@@ -61,25 +59,22 @@ class OrderController extends Controller
     public function getOne($id)
     {
         try {
-            // Find the Order by its ID
-            $order = Order::find($id);
+            // Find the vendor by its ID
+            $vendor = Vendor::find($id);
 
-            // Check if the order was found
-            if (!$order) {
-                // Return a not found response if the order doesn't exist
-                return ResponseService::response('NOT_FOUND', null, "order not found.");
+            // Check if the Vendor was found
+            if (!$vendor) {
+                // Return a not found response if the vendor doesn't exist
+                return ResponseService::response('NOT_FOUND', null, "vendor not found.");
             }
 
-            $order->customer;
-            $order->product;
-            // Return a successful response with the order data
-            return ResponseService::response('SUCCESS', $order);
+            // Return a successful response with the vendor data
+            return ResponseService::response('SUCCESS', $vendor);
         } catch (\Throwable $exception) {
             // Handle exceptions and return an error response
             return ResponseService::response('INTERNAL_SERVER_ERROR', $exception->getMessage());
         }
     }
-
     public function storeOrUpdate(Request $request, $id = null)
     {
         try {
@@ -88,12 +83,14 @@ class OrderController extends Controller
 
             // Define validation rules for the form inputs
             $rules = [
-                'customer_id' => 'required|exists:customers,id',
-                'product_id' => 'required|exists:products,id',
-                'quantity' => 'required|integer',
-                'status' => 'required|string|max:255',
-                'payment_method'=> 'required|string|max:255'
+                'name' => 'required|string|max:255',
+                'contact_person' => 'nullable|string|max:255',
+                'phone_number' => 'required|string|max:255',
+                'email' => 'nullable|email',
+                'address' => 'required|string',
+                'country'=> 'required|string'
             ];
+
 
             $validator = DataValidator::make($request->all(), $rules);
 
@@ -102,31 +99,35 @@ class OrderController extends Controller
                 return ResponseService::response('VALIDATION_ERROR', $validator->errors(), "Validation Failed");
             }
 
-            // Determine whether you are creating a new Order or updating an existing one
+            // Determine whether you are creating a new vendor or updating an existing one
 
             DB::beginTransaction();
-            // Create or update the Order based on the request data
+            // Create or update the vendor based on the request data
             if ($isCreating) {
-                // Create a new Order using the request data
-                $orderData = $request->all();
+                // Create a new vendor using the request data
+                $vendorData = $request->all();
+                $entity = EntityService::store($request->all());
+                // Add $entity->id to the request data
+                $vendorData['entity_id'] = $entity->id;
 
-                $order = Order::create($orderData);
-                $message = "Order created successfully.";
+                $vendor = Vendor::create($vendorData);
+                $message = "vendor created successfully.";
             } else {
-                // Update an existing Order using the request data
-                $order = Order::find($id);
-                if (!$order) {
-                    return ResponseService::response('NOT_FOUND', null, "Order not found.");
+                // Update an existing vendor using the request data
+                $vendor = Vendor::find($id);
+                if (!$vendor) {
+                    return ResponseService::response('NOT_FOUND', null, "vendor not found.");
                 }
 
-                $order->update($request->all());
-                $message = "Order updated successfully.";
+                EntityService::update($vendor->entity_id, $request->all());
+                $vendor->update($request->all());
+                $message = "vendor updated successfully.";
             }
 
             DB::commit();
 
-            // Return a successful response with the Order data and a success message
-            return ResponseService::response('SUCCESS', $order, $message);
+            // Return a successful response with the vendor data and a success message
+            return ResponseService::response('SUCCESS', $vendor, $message);
         } catch (\Throwable $exception) {
             DB::rollBack();
             // Handle exceptions and return an error response
@@ -138,20 +139,20 @@ class OrderController extends Controller
     {
         try {
 
-            // Find the Order by its ID
-            $order = Order::find($id);
+            // Find the vendor by its ID
+            $vendor = Vendor::find($id);
 
-            // Check if the Order was found
-            if (!$order) {
-                // Return a not found response if the Order doesn't exist
-                return ResponseService::response('NOT_FOUND', null, "Order not found.");
+            // Check if the vendor was found
+            if (!$vendor) {
+                // Return a not found response if the vendor doesn't exist
+                return ResponseService::response('NOT_FOUND', null, "vendor not found.");
             }
 
-            // Delete the Order
-            $order->delete();
+            // Delete the vendor
+            $vendor->delete();
 
             // Return a successful response indicating successful deletion
-            return ResponseService::response('SUCCESS', "Order deleted successfully.");
+            return ResponseService::response('SUCCESS', "vendor deleted successfully.");
         } catch (\Throwable $exception) {
             // Handle exceptions and return an error response
             return ResponseService::response('INTERNAL_SERVER_ERROR', $exception->getMessage());

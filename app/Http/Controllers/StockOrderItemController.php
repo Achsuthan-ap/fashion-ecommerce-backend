@@ -3,29 +3,28 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\Order;
+use App\Models\StockOrderItem;
 use App\Services\DataValidator;
-use App\Services\EntityService;
 use App\Services\QueryService;
 use App\Services\ResponseService;
 use Illuminate\Http\Request;
 use DB;
 
-class OrderController extends Controller
+class StockOrderItemController extends Controller
 {
     public function getAll(Request $request)
     {
         try {
             
             // Define the columns groups that want to select
-            $allColumns = ['orders.id', 'customer_id', 'customers.first_name as customer_name','customers.phone as customer_phone','customers.address as customer_address', 'product_id','products.name as product_name','quantity', 'orders.status','orders.payment_method'];
+            $allColumns = ['order_item.id', 'stock_order_id', 'product_id','products.name as product_name','quantity', 'price','subtotal'];
 
             // Define allowed filters, searchable columns for where condition
-            $allowedFilters = ['customer_id', 'product_id','quantity', 'status','payment_method'];
-            $searchColumns = ['customer_id', 'product_id','quantity', 'status','payment_method'];
+            $allowedFilters = ['stock_order_id', 'product_id','quantity', 'price','subtotal'];
+            $searchColumns = ['stock_order_id', 'product_id','quantity', 'price','subtotal'];
 
             // Define allowed sorting columns for 'orderBy' method
-            $allowedSortingColumns = ['customer_id', 'product_id','quantity', 'status','payment_method'];
+            $allowedSortingColumns = ['stock_order_id', 'product_id','quantity', 'price','subtotal'];
 
             // Get filter JSON, search string, pagination parameters, etc. from the request
             $filterJson = $request->filters ?? [];
@@ -36,9 +35,9 @@ class OrderController extends Controller
             $sortDir = $request->sort_dir ?? 'asc';
 
             // Build the base query for the base table
-            $baseQuery = DB::table('orders')->whereNull('orders.deleted_at')
-            ->leftJoin('customers', 'orders.customer_id', '=', 'customers.id')
-            ->leftJoin('products', 'orders.product_id', '=', 'products.id');
+            $baseQuery = DB::table('stock_order_item as order_item')->whereNull('order_item.deleted_at')
+            ->leftJoin('stock_orders', 'order_item.stock_order_id', '=', 'stock_orders.id')
+            ->leftJoin('products', 'order_item.product_id', '=', 'products.id');
             // You can add your left join queries and additional where conditions here if needed
 
             // Apply filters, search, and conditions to the base query
@@ -62,15 +61,15 @@ class OrderController extends Controller
     {
         try {
             // Find the Order by its ID
-            $order = Order::find($id);
+            $order = StockOrderItem::find($id);
 
             // Check if the order was found
             if (!$order) {
                 // Return a not found response if the order doesn't exist
-                return ResponseService::response('NOT_FOUND', null, "order not found.");
+                return ResponseService::response('NOT_FOUND', null, "order item not found.");
             }
 
-            $order->customer;
+            $order->stockOrder;
             $order->product;
             // Return a successful response with the order data
             return ResponseService::response('SUCCESS', $order);
@@ -88,11 +87,11 @@ class OrderController extends Controller
 
             // Define validation rules for the form inputs
             $rules = [
-                'customer_id' => 'required|exists:customers,id',
+                'stock_order_id' => 'required|exists:stock_orders,id',
                 'product_id' => 'required|exists:products,id',
                 'quantity' => 'required|integer',
-                'status' => 'required|string|max:255',
-                'payment_method'=> 'required|string|max:255'
+                'price' => 'required|string|max:255',
+                'subtotal'=> 'required|string|max:255'
             ];
 
             $validator = DataValidator::make($request->all(), $rules);
@@ -110,17 +109,17 @@ class OrderController extends Controller
                 // Create a new Order using the request data
                 $orderData = $request->all();
 
-                $order = Order::create($orderData);
-                $message = "Order created successfully.";
+                $order = StockOrderItem::create($orderData);
+                $message = "Order item created successfully.";
             } else {
                 // Update an existing Order using the request data
-                $order = Order::find($id);
+                $order = StockOrderItem::find($id);
                 if (!$order) {
                     return ResponseService::response('NOT_FOUND', null, "Order not found.");
                 }
 
                 $order->update($request->all());
-                $message = "Order updated successfully.";
+                $message = "Order item updated successfully.";
             }
 
             DB::commit();
@@ -139,19 +138,19 @@ class OrderController extends Controller
         try {
 
             // Find the Order by its ID
-            $order = Order::find($id);
+            $order = StockOrderItem::find($id);
 
             // Check if the Order was found
             if (!$order) {
                 // Return a not found response if the Order doesn't exist
-                return ResponseService::response('NOT_FOUND', null, "Order not found.");
+                return ResponseService::response('NOT_FOUND', null, "Order item not found.");
             }
 
             // Delete the Order
             $order->delete();
 
             // Return a successful response indicating successful deletion
-            return ResponseService::response('SUCCESS', "Order deleted successfully.");
+            return ResponseService::response('SUCCESS', "Order item deleted successfully.");
         } catch (\Throwable $exception) {
             // Handle exceptions and return an error response
             return ResponseService::response('INTERNAL_SERVER_ERROR', $exception->getMessage());

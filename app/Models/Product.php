@@ -24,13 +24,23 @@ class Product extends Model
         "images",
         "category_id",
         "specifications",
+        "offer_id",
     ];
     public function category()
     {
         return $this->belongsTo(ProductCategory::class, 'category_id');
     }
+    public function offer()
+    {
+        return $this->belongsTo(Offer::class, 'offer_id');
+    }
     public function entity()
     {
         return EntityService::belongsTo($this);
+    }
+    
+    public function getImagesAttribute($value)
+    {
+        return json_decode($value, true) ?: [];
     }
 }

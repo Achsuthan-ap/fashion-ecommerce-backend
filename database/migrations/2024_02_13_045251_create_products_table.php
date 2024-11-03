@@ -19,6 +19,7 @@ return new class extends Migration
             $table->decimal('price', 10, 2);
             $table->integer('stock_count');
             $table->json('images');
+            $table->enum('status', ['Available', 'Not available'])->default('Available'); // Status of the product
             $table->unsignedBigInteger('category_id');
             $table->unsignedBigInteger('offer_id');
             $table->json('specifications')->nullable();

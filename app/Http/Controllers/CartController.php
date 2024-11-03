@@ -173,28 +173,31 @@ class CartController extends Controller
         }
     }
 
-    public function deleteUserCart($cartId)
+    public function deleteUserCart($userId)
     {
         try {
-
-            // Find the Cart by cart_id
-            $userCart = Cart::where('id', $cartId);
-
-            // Check if the Cart was found
-            if (!$userCart) {
-            // Return a not found response if the Cart doesn't exist
-            return ResponseService::response('NOT_FOUND', null, "Cart not found.");
+            // Retrieve all cart items for the user
+            $userCarts = Cart::where('user_id', $userId)->get();
+    
+            // Check if the user cart was found
+            if ($userCarts->isEmpty()) {
+                // Return a not found response if the Cart doesn't exist
+                return ResponseService::response('NOT_FOUND', null, "Cart not found.");
             }
-
-            // Delete the cart
-            $userCart->delete();
-
+    
+            // Delete all cart items
+            foreach ($userCarts as $cartItem) {
+                $cartItem->delete();
+            }
+    
             // Return a successful response indicating successful deletion
             return ResponseService::response('SUCCESS', "Cart deleted successfully.");
         } catch (\Throwable $exception) {
-            // Handle exceptions and return an error response
+            // Log the exception and return an error response
+            \Log::error('Error deleting user cart: ' . $exception->getMessage());
             return ResponseService::response('INTERNAL_SERVER_ERROR', $exception->getMessage());
         }
     }
+    
 
 }

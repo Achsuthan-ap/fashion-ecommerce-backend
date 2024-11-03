@@ -24,6 +24,8 @@ return new class extends Migration
         Schema::table('product_categories', function (Blueprint $table) {
             $table->dropForeign('fk_product_categories_entity_id');
             $table->foreign('entity_id', 'fk_product_categories_entity_id')->references('id')->on('core_entities')->onDelete('cascade');
+            $table->dropForeign('fk_product_categories_offer_id');
+            $table->foreign('offer_id', 'fk_product_categories_offer_id')->references('id')->on('offers')->onDelete('cascade');
         });
 
         Schema::table('products', function (Blueprint $table) {
@@ -50,6 +52,12 @@ return new class extends Migration
             $table->dropForeign('fk_orders_product_id');
             $table->foreign('customer_id', 'fk_orders_customer_id')->references('id')->on('customers')->onDelete('cascade');
             $table->foreign('product_id', 'fk_orders_product_id')->references('id')->on('products')->onDelete('cascade');
+        });
+        Schema::table('product_offers', function (Blueprint $table) {
+            $table->dropForeign('fk_offers_product_category_id');
+            $table->dropForeign('fk_offers_offer_id');
+            $table->foreign('product_category_id', 'fk_offers_product_category_id')->references('id')->on('product_categories')->onDelete('cascade');
+            $table->foreign('offer_id', 'fk_offers_offer_id')->references('id')->on('offers')->onDelete('cascade');
         });
     }
 };

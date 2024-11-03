@@ -11,15 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('product_categories', function (Blueprint $table) {
+        Schema::create('product_offers', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('entity_id')->unique();
-            $table->string('title');
-            $table->string('description')->nullable();
-            $table->string('offer_id')->nullable();
+            $table->unsignedBigInteger('product_category_id');
+            $table->unsignedBigInteger(column: 'offer_id');
             $table->timestamps();
-            // Soft delete
-            $table->softDeletes();
         });
     }
 
@@ -28,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('product_categories');
+        Schema::dropIfExists('product_offers');
     }
 };

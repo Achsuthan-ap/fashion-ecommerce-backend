@@ -3,13 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Mail\StockAvailableNotification;
 use App\Models\Product;
+use App\Models\Subscription;
 use App\Services\DataValidator;
 use App\Services\EntityService;
 use App\Services\QueryService;
 use App\Services\ResponseService;
 use Illuminate\Http\Request;
 use DB;
+use Illuminate\Support\Facades\Mail;
 
 class ProductController extends Controller
 {
@@ -93,70 +96,82 @@ class ProductController extends Controller
 
    public function storeOrUpdate(Request $request, $id = null)
    {
-       try {
-           // Check if we are creating a new record (not updating an existing one)
-           $isCreating = !isset($id);
-   
-           // Define validation rules for the form inputs
-           $rules = [
-               'name' => 'required|string|max:255',
-               'description' => 'nullable|string|max:255',
-               'price' => 'required|numeric',  
-               'stock_count' => 'nullable|numeric', 
-               'images' => 'nullable|array',  
-               'category_id' => 'required|exists:product_categories,id',
-               'specifications' => 'nullable' 
-           ];
-   
-           $validator = DataValidator::make($request->all(), $rules);
-   
-           // If validation fails, return a validation error response.
-           if ($validator->fails()) {
-               return ResponseService::response('VALIDATION_ERROR', $validator->errors(), "Validation Failed");
-           }
-   
-           // Transform arrays into JSON strings
-           $productData = $request->all();
-           if (isset($productData['images'])) {
-               $productData['images'] = json_encode($productData['images']);
-           }
-           if (isset($productData['specifications'])) {
-               $productData['specifications'] = json_encode($productData['specifications']);
-           }
-   
-           DB::beginTransaction();
-   
-           if ($isCreating) {
-               // Create a new Product using the request data
-               $entity = EntityService::store($productData);
-               // Add $entity->id to the request data
-               $productData['entity_id'] = $entity->id;
-   
-               $product = Product::create($productData);
-               $message = "Product created successfully.";
-           } else {
-               // Update an existing Product using the request data
-               $product = Product::find($id);
-               if (!$product) {
-                   return ResponseService::response('NOT_FOUND', null, "Product not found.");
-               }
-   
-               EntityService::update($product->entity_id, $productData);
-               $product->update($productData);
-               $message = "Product updated successfully.";
-           }
-   
-           DB::commit();
-   
-           // Return a successful response with the Product data and a success message
-           return ResponseService::response('SUCCESS', null, $message);
-       } catch (\Throwable $exception) {
-           DB::rollBack();
-           // Handle exceptions and return an error response
-           return ResponseService::response('INTERNAL_SERVER_ERROR', $exception->getMessage());
-       }
-   }
-   
+    try {
+        // Check if we are creating a new record (not updating an existing one)
+        $isCreating = !isset($id);
+
+        // Define validation rules for the form inputs
+        $rules = [
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:255',
+            'price' => 'required|numeric',
+            'stock_count' => 'nullable|numeric',
+            'images' => 'nullable|array',
+            'category_id' => 'required|exists:product_categories,id',
+            'specifications' => 'nullable'
+        ];
+
+        $validator = DataValidator::make($request->all(), $rules);
+
+        // If validation fails, return a validation error response.
+        if ($validator->fails()) {
+            return ResponseService::response('VALIDATION_ERROR', $validator->errors(), "Validation Failed");
+        }
+
+        // Transform arrays into JSON strings
+        $productData = $request->all();
+        if (isset($productData['images'])) {
+            $productData['images'] = json_encode($productData['images']);
+        }
+        if (isset($productData['specifications'])) {
+            $productData['specifications'] = json_encode($productData['specifications']);
+        }
+
+        DB::beginTransaction();
+
+        if ($isCreating) {
+            // Create a new Product using the request data
+            $entity = EntityService::store($productData);
+            // Add $entity->id to the request data
+            $productData['entity_id'] = $entity->id;
+
+            $product = Product::create($productData);
+            $message = "Product created successfully.";
+        } else {
+            // Update an existing Product using the request data
+            $product = Product::find($id);
+            if (!$product) {
+                return ResponseService::response('NOT_FOUND', null, "Product not found.");
+            }
+
+            $previousStock = $product->stock_count; // Track previous stock level
+            EntityService::update($product->entity_id, $productData);
+            $product->update($productData);
+            $message = "Product updated successfully.";
+
+            // Check if stock was 0 and now updated to a positive value
+            if ($previousStock == 0 && $product->stock_count > 0) {
+                // Fetch all subscriptions for this product
+                $subscriptions = Subscription::where('product_id', $product->id)->get();
+
+                // Send notification emails to all subscribed users
+                foreach ($subscriptions as $subscription) {
+                    Mail::to($subscription->email)->send(new StockAvailableNotification($product));
+                    $subscription->delete(); // Remove subscription after notification
+                }
+            }
+        }
+
+        DB::commit();
+
+        // Return a successful response with the Product data and a success message
+        return ResponseService::response('SUCCESS', null, $message);
+        } catch (\Throwable $exception) {
+            DB::rollBack();
+            // Handle exceptions and return an error response
+            return ResponseService::response('INTERNAL_SERVER_ERROR', $exception->getMessage());
+        }
+    }
 
     public function delete($id)
     {
@@ -185,6 +200,20 @@ class ProductController extends Controller
             // Handle exceptions and return an error response
             return ResponseService::response('INTERNAL_SERVER_ERROR', $exception->getMessage());
         }
+    }
+
+    public function subscribeToStockNotification(Request $request, $productId)
+    {
+        $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        Subscription::create([
+            'product_id' => $productId,
+            'email' => $request->email,
+        ]);
+
+        return response()->json(['message' => 'You will be notified when the product is back in stock.']);
     }
     
 }

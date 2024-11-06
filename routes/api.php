@@ -8,6 +8,7 @@ use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\ProductOfferController;
+use App\Http\Controllers\PromotionController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\StaticPageController;
 use App\Http\Controllers\StockOrderController;
@@ -33,6 +34,7 @@ Route::controller(ProductController::class)->group(function () {
     Route::post('/products', 'storeOrUpdate');                                                           
     Route::put('/products/{id}', 'storeOrUpdate');                                                           
     Route::delete('/products/{id}', 'delete');                                                           
+    Route::post('/subscribe/{productId}', 'subscribeToStockNotification');                                                           
 });
 
 // ProductCategoryController routes
@@ -144,4 +146,10 @@ Route::controller(ProductOfferController::class)->group(function () {
 
 Route::controller(ReportController::class)->group(function () {
     Route::post('/reports', 'generateReport');                                                                                      
+});
+
+Route::controller(PromotionController::class)->group(function () {
+    Route::post('/promotions', 'store');
+    Route::get('/promotions',  'index');
+    Route::delete('/promotions/{id}',  'destroy');                                                                                  
 });

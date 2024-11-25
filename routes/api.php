@@ -2,9 +2,11 @@
 
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\CustomerNotificationController;
 use App\Http\Controllers\FlexFieldController;
 use App\Http\Controllers\OfferController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\ProductOfferController;
@@ -16,6 +18,7 @@ use App\Http\Controllers\StockOrderItemController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VendorController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 
 // FLexFieldController routes
 Route::controller(FlexFieldController::class)->group(function () {
@@ -153,3 +156,22 @@ Route::controller(PromotionController::class)->group(function () {
     Route::get('/promotions',  'index');
     Route::delete('/promotions/{id}',  'destroy');                                                                                  
 });
+
+Route::controller(PaymentController::class)->group(function () {
+    Route::post('/payhere/notify', 'handlePayHereIPN');     
+    Route::post('/payhere-proxy', 'handlePayHereProxy');
+    Route::post('/create-checkout-session', 'createCheckoutSession');
+                                                                                 
+});
+
+// CustomerNotificationController routes
+Route::controller(CustomerNotificationController::class)->group(function () {
+    Route::get('/customer-notifications', 'getAll');                                                            
+    Route::get('/customer-notifications/{id}', 'getOne');                                 
+    Route::post('/customer-notifications', 'storeOrUpdate');                                                             
+    Route::put('/customer-notifications/{id}', 'storeOrUpdate');                           
+    Route::delete('/customer-notifications/{id}', 'delete');                           
+    Route::post('/subscription/send-notification/{id}', 'sendNotification');                           
+});
+
+

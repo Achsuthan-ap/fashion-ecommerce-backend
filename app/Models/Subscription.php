@@ -14,7 +14,13 @@ class Subscription extends Model
 
     protected $fillable = [
         "product_id",
-        "email"
+        "email",
+        "status"
     ];
+
+    public function product()
+    {
+        return $this->belongsTo(Product::class, 'product_id');
+    }
 
 }

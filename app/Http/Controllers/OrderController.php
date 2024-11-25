@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\Customer;
 use App\Models\Order;
 use App\Services\DataValidator;
 use App\Services\EntityService;
 use App\Services\QueryService;
 use App\Services\ResponseService;
+use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use DB;
 
@@ -21,8 +23,8 @@ class OrderController extends Controller
             $allColumns = ['orders.id', 'customer_id', 'customers.first_name as customer_name','customers.phone as customer_phone','customers.address as customer_address', 'product_id','products.name as product_name','quantity', 'orders.status','orders.payment_method'];
 
             // Define allowed filters, searchable columns for where condition
-            $allowedFilters = ['customer_id', 'product_id','quantity', 'status','payment_method'];
-            $searchColumns = ['customer_id', 'product_id','quantity', 'status','payment_method'];
+            $allowedFilters = ['customer_id', 'product_id','quantity', 'orders.status','payment_method'];
+            $searchColumns = ['customer_id', 'product_id','quantity', 'orders.status','payment_method'];
 
             // Define allowed sorting columns for 'orderBy' method
             $allowedSortingColumns = ['customer_id', 'product_id','quantity', 'status','payment_method'];
@@ -83,56 +85,85 @@ class OrderController extends Controller
     public function storeOrUpdate(Request $request, $id = null)
     {
         try {
-            // Check if we are creating a new record (not updating an existing one)
             $isCreating = !isset($id);
 
-            // Define validation rules for the form inputs
             $rules = [
                 'customer_id' => 'required|exists:customers,id',
                 'product_id' => 'required|exists:products,id',
                 'quantity' => 'required|integer',
                 'status' => 'required|string|max:255',
-                'payment_method'=> 'required|string|max:255'
+                'payment_method' => 'required|string|max:255'
             ];
 
             $validator = DataValidator::make($request->all(), $rules);
 
-            // If validation fails, return a validation error response.
             if ($validator->fails()) {
                 return ResponseService::response('VALIDATION_ERROR', $validator->errors(), "Validation Failed");
             }
 
-            // Determine whether you are creating a new Order or updating an existing one
-
             DB::beginTransaction();
-            // Create or update the Order based on the request data
-            if ($isCreating) {
-                // Create a new Order using the request data
-                $orderData = $request->all();
 
+            if ($isCreating) {
+                $orderData = $request->all();
                 $order = Order::create($orderData);
                 $message = "Order created successfully.";
             } else {
-                // Update an existing Order using the request data
                 $order = Order::find($id);
                 if (!$order) {
                     return ResponseService::response('NOT_FOUND', null, "Order not found.");
                 }
-
                 $order->update($request->all());
                 $message = "Order updated successfully.";
             }
 
             DB::commit();
 
-            // Return a successful response with the Order data and a success message
+            // Fetch customer phone number (assuming 'Customer' has a 'phone' field)
+            $customer = Customer::find($request->input('customer_id'));
+
+            // if ($customer && $isCreating) {
+            //     $this->sendOrderConfirmationSMS($customer->phone, $order->id);
+            // }
+
             return ResponseService::response('SUCCESS', $order, $message);
         } catch (\Throwable $exception) {
             DB::rollBack();
-            // Handle exceptions and return an error response
             return ResponseService::response('INTERNAL_SERVER_ERROR', $exception->getMessage());
         }
     }
+
+    private function sendOrderConfirmationSMS($phoneNumber, $orderId)
+    {
+        $apiKey = '1e78a1633a00cdee1db197ca99773bf0-f5ae94b8-7980-4348-bfe2-f6b29355d54a';
+        $baseUrl = env('INFOBIP_BASE_URL');
+
+        $client = new Client(['base_uri' => $baseUrl]);
+
+        $response = $client->post('https://api.infobip.com/sms/2/text/advanced', [
+            'headers' => [
+                'Authorization' => 'App ' . $apiKey,
+                'Content-Type' => 'application/json'
+            ],
+            'json' => [
+                'messages' => [
+                    [
+                        'from' => '447491163443', // sender ID
+                        'destinations' => [
+                            ['to' => $phoneNumber]
+                        ],
+                        'text' => "Your order #$orderId has been successfully placed. Thank you for shopping with us!"
+                    ]
+                ]
+            ]
+        ]);
+
+        // Handle the response if needed
+        if ($response->getStatusCode() != 200) {
+            \Log::error("Failed to send SMS: " . $response->getBody());
+        }
+    }
+
+
 
     public function delete($id)
     {

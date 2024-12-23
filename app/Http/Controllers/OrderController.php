@@ -121,9 +121,9 @@ class OrderController extends Controller
             // Fetch customer phone number (assuming 'Customer' has a 'phone' field)
             $customer = Customer::find($request->input('customer_id'));
 
-            // if ($customer && $isCreating) {
-            //     $this->sendOrderConfirmationSMS($customer->phone, $order->id);
-            // }
+            if ($customer && $isCreating) {
+                $this->sendOrderConfirmationSMS($customer->phone, $order->id);
+            }
 
             return ResponseService::response('SUCCESS', $order, $message);
         } catch (\Throwable $exception) {
